@@ -839,7 +839,7 @@ const TrackListProxyHandler = GObject.registerClass({
     }
 
     _cleanMetadata(metadata) {
-        metadata = metadata && Array.isArray(metadata) ? metadata : [];
+        metadata = metadata && Array.isArray(metadata) ? metadata : (metadata ? [metadata] : []);
         return metadata.map(m => parseMetadata(m, this._player_name)).filter((m, i, a) => {
             return this._goodTrackListId(m[0]) && a.findIndex(m2 => m2[0] === m[0]) === i;
         });
@@ -1711,23 +1711,29 @@ const MprisProxyHandler = GObject.registerClass({
     }
 
     _shouldOverride(propertyName, playerName) {
-        return playerName === 'Chrome';
+        if (playerName === 'Chrome') {
+            switch (propertyName) {
+                case "CanControl":
+                    return this._artist && (this._artist !== 'Chrome') && this._title;
+                default:
+                    return true;
+            }
+        }
+        return false;
     }
 
     _updatePlayerProps() {
-        let playerName = this._mprisProxy.Identity || '';
-
-        let visible = this._playerProxy.CanControl || this._shouldOverride('CanControl', playerName);
+        let visible = this._playerProxy.CanControl || this._shouldOverride('CanControl', this.player_name);
         let playPauseIconName = 'media-playback-start-symbolic';
         let playPauseReactive = false;
         let showStop = false;
         let status = (this._playerProxy.PlaybackStatus ||  '').toLowerCase();
         status = (status === 'playing') ? 2 : (status === 'paused') ? 1 : 0;
         let isPlaying = status === 2;
-        let canPlay = this._playerProxy.CanPlay || this._shouldOverride('CanPlay', playerName);
-        let canPause = this._playerProxy.CanPause || this._shouldOverride('CanPause', playerName);
-        let canGoPrevious = this._playerProxy.CanGoPrevious || this._shouldOverride('CanGoPrevious', playerName);
-        let canGoNext = this._playerProxy.CanGoNext || this._shouldOverride('CanGoNext', playerName);
+        let canPlay = this._playerProxy.CanPlay || this._shouldOverride('CanPlay', this.player_name);
+        let canPause = this._playerProxy.CanPause || this._shouldOverride('CanPause', this.player_name);
+        let canGoPrevious = this._playerProxy.CanGoPrevious || this._shouldOverride('CanGoPrevious', this.player_name);
+        let canGoNext = this._playerProxy.CanGoNext || this._shouldOverride('CanGoNext', this.player_name);
 
         if (canPause && canPlay) {
             playPauseIconName = isPlaying ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
