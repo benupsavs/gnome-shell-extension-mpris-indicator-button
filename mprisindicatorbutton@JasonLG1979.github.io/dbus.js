@@ -342,6 +342,11 @@ function parseMetadata(metadata, playerName) {
                 : metadata['rhythmbox:streamTitle'] ? metadata['rhythmbox:streamTitle']
                 : playerName;
 
+            // As of Chrome 80.0.3987.87 and Youtube Music, " - Topic" is always appended.
+            if (playerName === 'Chrome' && artist.endsWith(' - Topic')) {
+                artist = artist.substring(0, artist.length - 8);
+            }
+
             // Prefer the track title, but in it's absence if the
             // track number and album title are available use them.
             // For example, '5 - My favorite Album'.
@@ -1705,18 +1710,24 @@ const MprisProxyHandler = GObject.registerClass({
         }
     }
 
+    _shouldOverride(propertyName, playerName) {
+        return playerName === 'Chrome';
+    }
+
     _updatePlayerProps() {
-        let visible = this._playerProxy.CanControl || false;
+        let playerName = this._mprisProxy.Identity || '';
+
+        let visible = this._playerProxy.CanControl || this._shouldOverride('CanControl', playerName);
         let playPauseIconName = 'media-playback-start-symbolic';
         let playPauseReactive = false;
         let showStop = false;
         let status = (this._playerProxy.PlaybackStatus ||  '').toLowerCase();
         status = (status === 'playing') ? 2 : (status === 'paused') ? 1 : 0;
         let isPlaying = status === 2;
-        let canPlay = this._playerProxy.CanPlay || false;
-        let canPause = this._playerProxy.CanPause || false;
-        let canGoPrevious = this._playerProxy.CanGoPrevious || false;
-        let canGoNext = this._playerProxy.CanGoNext || false;
+        let canPlay = this._playerProxy.CanPlay || this._shouldOverride('CanPlay', playerName);
+        let canPause = this._playerProxy.CanPause || this._shouldOverride('CanPause', playerName);
+        let canGoPrevious = this._playerProxy.CanGoPrevious || this._shouldOverride('CanGoPrevious', playerName);
+        let canGoNext = this._playerProxy.CanGoNext || this._shouldOverride('CanGoNext', playerName);
 
         if (canPause && canPlay) {
             playPauseIconName = isPlaying ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
